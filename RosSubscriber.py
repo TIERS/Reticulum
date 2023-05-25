@@ -19,6 +19,9 @@ from std_msgs.msg import String
 # them all within the app namespace "RosSubscriber"
 APP_NAME = "RosSubscriber"
 
+# define a fixed key for hashing RNS identity
+key_hash = ("8893e2bfd30fc08455997caf7abb7a6341716768dbbf9a91cc1455bd7eeaf74cdc10ec72a4d4179696040bac620ee97ebc861e2443e5270537ae766d91b58181", "4461a04223203527d1053d1daed5e853")
+
 ##########################################################
 #### Server Part #########################################
 ##########################################################
@@ -36,7 +39,7 @@ def ros_subsciber_callback(path, data, request_id, link_id, remote_identity, req
 
 def callback(msg):
     global ros_msg
-    print("Recieved new ROS message: \n", msg.data)
+    # RNS.log("Recieved new ROS message: \n", msg.data)
     ros_msg = msg.data
     # rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
 
@@ -47,7 +50,11 @@ def server(configpath):
     reticulum = RNS.Reticulum(configpath)
     
     # Randomly create a new identity for our link example
-    server_identity = RNS.Identity()
+    # server_identity = RNS.Identity()
+
+    # generate identity hash from specified key
+    key, id_hash = key_hash
+    server_identity = RNS.Identity.from_bytes(bytes.fromhex(key))
 
     # We create a destination that clients can connect to. We
     # want clients to create links to this destination, so we
@@ -72,8 +79,8 @@ def server(configpath):
         allow = RNS.Destination.ALLOW_ALL
     )
 
-    # spin() simply keeps python from exiting until this node is stopped
-    # rospy.spin()
+    # Initialize Ros listener node 
+    rospy.init_node('listener_node', anonymous=True)
 
     # Everything's ready!
     # Let's Wait for client requests or user input
@@ -108,10 +115,8 @@ def client_connected(link):
     link.set_link_closed_callback(client_disconnected)
     latest_client_link = link
 
-    rospy.init_node('listener_node', anonymous=True)
-
-    # subscribe to the topic, specifing the data (String) and a callback function for when is received
-    rospy.Subscriber("/talking_topic", String, callback)
+    # subscribe to the topic, specifing the data (String) and a callback function to handle new topic message
+    rospy.Subscriber("/reticulum/in", String, callback)
 
 def client_disconnected(link):
     RNS.log("Client disconnected")
