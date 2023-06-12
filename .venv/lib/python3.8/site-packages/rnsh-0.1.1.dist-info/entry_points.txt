@@ -1,0 +1,3 @@
+[console_scripts]
+rnsh=rnsh.rnsh:rnsh_cli
+
